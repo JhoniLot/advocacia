@@ -15,7 +15,10 @@ import {
   Search,
   MoreVertical,
   ChevronRight,
-  FileText
+  FileText,
+  ArrowUpRight,
+  ArrowDownRight,
+  Filter
 } from 'lucide-react';
 import { 
   LineChart, 
@@ -26,7 +29,9 @@ import {
   Tooltip, 
   ResponsiveContainer, 
   AreaChart, 
-  Area 
+  Area,
+  BarChart,
+  Bar
 } from 'recharts';
 
 const data = [
@@ -97,6 +102,9 @@ const App = () => {
           </a>
           <a href="#" className={`nav-link ${activeTab === 'finance' ? 'active' : ''}`} onClick={() => setActiveTab('finance')}>
             <Wallet size={20} /> Financeiro
+          </a>
+          <a href="#" className={`nav-link ${activeTab === 'portal' ? 'active' : ''}`} onClick={() => setActiveTab('portal')}>
+            <ExternalLink size={20} /> Portal do Cliente (VIP)
           </a>
         </nav>
 
@@ -268,6 +276,140 @@ const App = () => {
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+
+        {/* Finance Content */}
+        {activeTab === 'finance' && (
+          <div style={{ animation: 'fadeIn 0.5s ease-out' }}>
+            <div className="kpi-grid">
+              <div className="glass-card" style={{ padding: '24px' }}>
+                <div style={{ color: 'var(--text-secondary)', fontSize: '0.9em', marginBottom: '8px' }}>Total Recebido (Honorários)</div>
+                <div style={{ fontSize: '1.8em', fontWeight: '700', color: 'var(--accent-metallic)' }}>R$ 245.000,00</div>
+              </div>
+              <div className="glass-card" style={{ padding: '24px' }}>
+                <div style={{ color: 'var(--text-secondary)', fontSize: '0.9em', marginBottom: '8px' }}>Total Custas/Saídas</div>
+                <div style={{ fontSize: '1.8em', fontWeight: '700', color: 'var(--error)' }}>R$ 18.250,00</div>
+              </div>
+              <div className="glass-card" style={{ padding: '24px' }}>
+                <div style={{ color: 'var(--text-secondary)', fontSize: '0.9em', marginBottom: '8px' }}>Margem Média de Lucro</div>
+                <div style={{ fontSize: '1.8em', fontWeight: '700', color: 'var(--success)' }}>92.5%</div>
+              </div>
+            </div>
+
+            <div className="glass-card" style={{ marginTop: '24px', padding: '24px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                <h3>Lançamentos por Caso</h3>
+                <button className="secondary"><Filter size={16} /> Filtrar Período</button>
+              </div>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--border-glass)', textAlign: 'left', color: 'var(--text-secondary)', fontSize: '0.9em' }}>
+                    <th style={{ padding: '16px' }}>Caso / Processo</th>
+                    <th style={{ padding: '16px' }}>Entradas (Honorários)</th>
+                    <th style={{ padding: '16px' }}>Saídas (Custas)</th>
+                    <th style={{ padding: '16px' }}>Lucro Líquido</th>
+                    <th style={{ padding: '16px' }}>Margem</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    { case: 'Silva vs TechCorp', in: 15000, out: 1200, net: 13800, margin: 92 },
+                    { case: 'Maria Santos Inventário', in: 45000, out: 4500, net: 40500, margin: 90 },
+                    { case: 'Condomínio Solar', in: 8000, out: 150, net: 7850, margin: 98.1 },
+                  ].map((row, i) => (
+                    <tr key={i} style={{ borderBottom: '1px solid var(--border-glass)' }}>
+                      <td style={{ padding: '16px', fontWeight: '600' }}>{row.case}</td>
+                      <td style={{ padding: '16px', color: 'var(--accent-metallic)' }}>+ R$ {row.in.toLocaleString()}</td>
+                      <td style={{ padding: '16px', color: 'var(--error)' }}>- R$ {row.out.toLocaleString()}</td>
+                      <td style={{ padding: '16px', color: 'var(--success)', fontWeight: '700' }}>R$ {row.net.toLocaleString()}</td>
+                      <td style={{ padding: '16px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ flex: 1, height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '3px' }}>
+                            <div style={{ width: `${row.margin}%`, height: '100%', background: 'var(--success)', borderRadius: '3px' }}></div>
+                          </div>
+                          <span style={{ fontSize: '0.85em' }}>{row.margin}%</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Client Portal Content (VIP View) */}
+        {activeTab === 'portal' && (
+          <div style={{ animation: 'fadeIn 0.5s ease-out' }}>
+            <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+              <div className="glass-card" style={{ padding: '40px', textAlign: 'center', marginBottom: '32px', background: 'var(--accent-gradient)' }}>
+                <h2 style={{ fontSize: '2em', marginBottom: '8px' }}>Área do Cliente VIP</h2>
+                <p style={{ opacity: 0.9 }}>Bem-vindo ao seu portal de acompanhamento exclusivo.</p>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '24px' }}>
+                <div className="glass-card" style={{ padding: '32px' }}>
+                  <h3 style={{ marginBottom: '24px' }}>Linha do Tempo do Processo</h3>
+                  <div style={{ position: 'relative', paddingLeft: '32px' }}>
+                    <div style={{ position: 'absolute', left: '7px', top: '0', bottom: '0', width: '2px', background: 'var(--border-glass)' }}></div>
+                    
+                    {[
+                      { title: 'Petição Inicial Protocolada', date: '12 Jan 2024', status: 'completed' },
+                      { title: 'Citação do Réu', date: '25 Jan 2024', status: 'completed' },
+                      { title: 'Réplica à Contestação', date: '10 Fev 2024', status: 'completed' },
+                      { title: 'Audiência de Conciliação', date: '27 Abr 2024', status: 'current' },
+                      { title: 'Sentença em Primeira Instância', date: 'Previsto: Jun 2024', status: 'upcoming' },
+                    ].map((step, i) => (
+                      <div key={i} style={{ marginBottom: '32px', position: 'relative' }}>
+                        <div style={{
+                          position: 'absolute', left: '-31px', top: '4px', width: '12px', height: '12px', borderRadius: '50%',
+                          background: step.status === 'completed' ? 'var(--success)' : step.status === 'current' ? 'var(--accent-metallic)' : 'var(--bg-surface)',
+                          border: `2px solid ${step.status === 'upcoming' ? 'var(--border-glass)' : 'transparent'}`,
+                          boxShadow: step.status === 'current' ? '0 0 10px var(--accent-metallic)' : ''
+                        }}></div>
+                        <div style={{ fontWeight: '600', color: step.status === 'upcoming' ? 'var(--text-secondary)' : 'var(--text-primary)' }}>{step.title}</div>
+                        <div style={{ fontSize: '0.85em', color: 'var(--text-secondary)' }}>{step.date}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                  <div className="glass-card" style={{ padding: '24px' }}>
+                    <h4 style={{ marginBottom: '16px' }}>Financeiro</h4>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '0.9em', color: 'var(--text-secondary)' }}>Honorários Pagos</span>
+                      <span style={{ fontWeight: '600' }}>R$ 5.000</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+                      <span style={{ fontSize: '0.9em', color: 'var(--text-secondary)' }}>Saldo Pendente</span>
+                      <span style={{ fontWeight: '600', color: 'var(--accent-metallic)' }}>R$ 2.500</span>
+                    </div>
+                    <button style={{ width: '100%', fontSize: '0.85em' }}>Pagar via Pix / Boleto</button>
+                  </div>
+
+                  <div className="glass-card" style={{ padding: '24px' }}>
+                    <h4 style={{ marginBottom: '16px' }}>Documentos</h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.85em' }}>
+                        <FileText size={16} color="var(--accent-metallic)" /> Copia_Inicial.pdf
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.85em' }}>
+                        <FileText size={16} color="var(--accent-metallic)" /> Procuracao_Assinada.pdf
+                      </div>
+                    </div>
+                    <button className="secondary" style={{ width: '100%', marginTop: '16px', fontSize: '0.85em' }}>Ver Todos</button>
+                  </div>
+
+                  <div className="glass-card" style={{ padding: '24px', border: '1px solid var(--success)' }}>
+                    <h4 style={{ marginBottom: '12px' }}>Auto-agendamento</h4>
+                    <p style={{ fontSize: '0.8em', color: 'var(--text-secondary)', marginBottom: '16px' }}>Marque uma reunião de retorno com seu advogado.</p>
+                    <button style={{ width: '100%', background: 'var(--success)', border: 'none' }}>Agendar Agora</button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}
