@@ -216,11 +216,6 @@ const App = () => {
     setLoading(false);
   };
 
-
-    setLoading(false);
-  };
-
-
   const sendWhatsAppUpdate = (clientName, processNumber) => {
     const message = `Prezado(a) ${clientName}, informamos que houve uma atualização no processo ${processNumber}. Para mais detalhes, acesse seu Portal de Acompanhamento. Atenciosamente, Escritório Prime.`;
     window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
