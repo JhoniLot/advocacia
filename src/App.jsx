@@ -19,7 +19,9 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Filter,
-  ShieldCheck
+  ShieldCheck,
+  Copy,
+  Smartphone
 } from 'lucide-react';
 import { 
   LineChart, 
@@ -45,7 +47,9 @@ const data = [
 const App = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showCheckIn, setShowCheckIn] = useState(false);
+  const [showLinkGenerator, setShowLinkGenerator] = useState(false);
   const [selectedCase, setSelectedCase] = useState(null);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   const KPICard = ({ title, value, icon: Icon, trend, status }) => (
     <div className="kpi-item">
@@ -70,7 +74,7 @@ const App = () => {
       <div className="glass-card" style={{ width: '500px', padding: '40px', position: 'relative', background: 'var(--bg-surface)' }}>
         <h2 style={{ marginBottom: '32px', fontSize: '1.2em', textTransform: 'uppercase', letterSpacing: '1px' }}>{title}</h2>
         {children}
-        <button className="secondary" onClick={onClose} style={{ marginTop: '32px', width: '100%' }}>CANCELAR</button>
+        <button className="secondary" onClick={onClose} style={{ marginTop: '32px', width: '100%' }}>FECHAR JANELA</button>
       </div>
     </div>
   );
@@ -78,6 +82,11 @@ const App = () => {
   const sendWhatsAppUpdate = (clientName, processNumber) => {
     const message = `Prezado(a) ${clientName}, informamos que houve uma atualização no processo ${processNumber}. Para mais detalhes, acesse seu Portal de Acompanhamento. Atenciosamente, Escritório Prime.`;
     window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
+  };
+
+  const copyLink = () => {
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2000);
   };
 
   return (
@@ -112,7 +121,7 @@ const App = () => {
             <div style={{ width: '8px', height: '8px', background: '#6ea08e' }}></div>
             <span style={{ fontSize: '0.7em', fontWeight: '700', letterSpacing: '1px' }}>SISTEMA OPERACIONAL</span>
           </div>
-          <button className="secondary" style={{ width: '100%', fontSize: '0.7em', padding: '10px' }}>
+          <button className="secondary" style={{ width: '100%', fontSize: '0.7em', padding: '10px' }} onClick={() => setShowLinkGenerator(true)}>
             <ExternalLink size={12} /> ACESSO EXTERNO
           </button>
         </div>
@@ -406,6 +415,33 @@ const App = () => {
               setShowCheckIn(false);
             }}>
               CONFIRMAR E NOTIFICAR
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {showLinkGenerator && (
+        <Modal title="Gerador de Acesso VIP" onClose={() => setShowLinkGenerator(false)}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.85em' }}>O link abaixo concede acesso direto à área do cliente sem necessidade de senha manual.</p>
+            
+            <div style={{ 
+              background: '#0a0c0f', border: '1px solid #2d3139', padding: '16px', 
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+            }}>
+              <code style={{ fontSize: '0.8em', color: 'var(--accent-primary)' }}>prime-juridico.com.br/vip/auth_8xK29...</code>
+              <button className="secondary" style={{ border: 'none', padding: '8px' }} onClick={copyLink}>
+                {linkCopied ? <CheckCircle2 size={16} color="#6ea08e" /> : <Copy size={16} />}
+              </button>
+            </div>
+
+            {linkCopied && <p style={{ fontSize: '0.7em', color: '#6ea08e', textAlign: 'center' }}>LINK COPIADO PARA A ÁREA DE TRANSFERÊNCIA</p>}
+
+            <button style={{ width: '100%', background: 'var(--accent-primary)', color: 'var(--bg-deep)' }} onClick={() => {
+              setActiveTab('portal');
+              setShowLinkGenerator(false);
+            }}>
+              <Smartphone size={16} /> SIMULAR VISÃO DO CLIENTE
             </button>
           </div>
         </Modal>
