@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, 
   Calendar as CalendarIcon, 
@@ -27,7 +27,8 @@ import {
   X,
   QrCode,
   CalendarDays,
-  FileUp
+  FileUp,
+  Loader2
 } from 'lucide-react';
 import { 
   LineChart, 
@@ -42,8 +43,11 @@ import {
   BarChart,
   Bar
 } from 'recharts';
+import { supabase } from './lib/supabase';
+import { formatDistanceToNow } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
-const data = [
+const chartData = [
   { name: 'JAN', profit: 4000, revenue: 6000 },
   { name: 'FEV', profit: 3000, revenue: 5000 },
   { name: 'MAR', profit: 5000, revenue: 8000 },
@@ -54,9 +58,133 @@ const App = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [modalType, setModalType] = useState(null); // 'checkin', 'link', 'triage', 'notif', 'payment', 'meeting'
   const [selectedCase, setSelectedCase] = useState(null);
+  const [processes, setProcesses] = useState([]);
+  const [events, setEvents] = useState([]); // Nova state para agenda
   const [linkCopied, setLinkCopied] = useState(false);
+  const [loading, setLoading] = useState(true);
+  
+  // Dynamic KPIs
+  const stats = processes.reduce((acc, curr) => {
+    acc.revenue += curr.profit || 0;
+    acc.count += 1;
+    return acc;
+  }, { revenue: 0, count: 0 });
+
+  const totalProfit = stats.revenue * 0.92; // Simulando 92% de margem
+  const totalCosts = stats.revenue - totalProfit;
+
+  
+  // Triage Form State
+  const [formData, setFormData] = useState({
+    client_name: '',
+    client_id: '',
+    phone: '',
+    description: ''
+  });
+
+  const [eventFormData, setEventFormData] = useState({
+    title: '',
+    type: 'Audiência',
+    time: '10:00',
+    date_label: 'HOJE',
+    urgent: false
+  });
+
 
   const isClientView = activeTab === 'portal';
+
+  useEffect(() => {
+    fetchProcesses();
+    fetchEvents();
+  }, []);
+
+  const fetchEvents = async () => {
+    const { data, error } = await supabase
+      .from('agenda')
+      .select('*')
+      .order('time', { ascending: true });
+    
+    if (!error && data) {
+      setEvents(data);
+    }
+  };
+
+
+  const fetchProcesses = async () => {
+    setLoading(true);
+    console.log('Iniciando busca de processos...');
+    const { data, error } = await supabase
+      .from('processes')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error('Erro detalhado do Supabase:', error);
+      alert('Erro ao buscar dados: ' + error.message);
+    } else {
+      console.log('Processos recebidos:', data?.length || 0);
+      setProcesses(data || []);
+    }
+    setLoading(false);
+  };
+
+  const handleRegisterCase = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    
+    console.log('Tentando registrar caso:', formData.client_name);
+
+    const { data, error } = await supabase
+      .from('processes')
+      .insert([
+        { 
+          client_name: formData.client_name,
+          client_id: formData.client_id,
+          phone: formData.phone,
+          description: formData.description,
+          status: 'INICIAL',
+          profit: Math.floor(Math.random() * 15000) + 5000 
+        }
+      ])
+      .select();
+
+    if (error) {
+      console.error('Erro ao inserir:', error);
+      alert('Erro ao registrar caso: ' + error.message);
+    } else {
+      console.log('Caso registrado com sucesso!', data);
+      alert('Caso registrado com sucesso! Redirecionando para a lista...');
+      setFormData({ client_name: '', client_id: '', phone: '', description: '' });
+      setModalType(null);
+      setActiveTab('crm'); // Muda para a aba de listagem
+      fetchProcesses();
+    }
+    setLoading(false);
+  };
+
+  const handleAddEvent = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    
+    console.log('Agendando evento:', eventFormData.title);
+
+    const { error } = await supabase
+      .from('agenda')
+      .insert([eventFormData]);
+
+    if (error) {
+      console.error('Erro ao agendar:', error);
+      alert('Erro ao agendar: ' + error.message);
+    } else {
+      console.log('Evento agendado!');
+      alert('Compromisso agendado com sucesso!');
+      setEventFormData({ title: '', type: 'Audiência', time: '10:00', date_label: 'HOJE', urgent: false });
+      setModalType(null);
+      fetchEvents();
+    }
+    setLoading(false);
+  };
+
 
   const KPICard = ({ title, value, icon: Icon, trend }) => (
     <div className="kpi-item">
@@ -150,16 +278,26 @@ const App = () => {
         {activeTab === 'dashboard' && (
           <div>
             <div className="kpi-grid">
-              <KPICard title="Receita Bruta" value="R$ 142.500,00" icon={DollarSign} trend={12.5} />
-              <KPICard title="Custos Operacionais" value="R$ 12.400,00" icon={Clock} trend={-4.2} />
-              <KPICard title="Lucro Líquido" value="R$ 130.100,00" icon={TrendingUp} trend={18.1} />
+              <KPICard title="Honorários Totais" value={`R$ ${stats.revenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} icon={DollarSign} trend={stats.count > 0 ? 100 : 0} />
+              <KPICard title="Custos (Estimados)" value={`R$ ${totalCosts.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} icon={Clock} trend={-5} />
+              <KPICard title="Lucro Líquido" value={`R$ ${totalProfit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} icon={TrendingUp} trend={stats.count > 0 ? 100 : 0} />
+            </div>
+
+            <div className="glass-card" style={{ padding: '24px', marginTop: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h3 style={{ fontSize: '0.8em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Status da Base de Dados</h3>
+                <p style={{ fontSize: '1.2em', fontWeight: '700' }}>{stats.count} CASOS ATIVOS NO SUPABASE</p>
+              </div>
+              <button className="secondary" onClick={fetchProcesses} disabled={loading}>
+                {loading ? <Loader2 className="animate-spin" size={16} /> : 'SINCRONIZAR AGORA'}
+              </button>
             </div>
 
             <div className="glass-card" style={{ padding: '40px', marginTop: '24px' }}>
               <h3 style={{ fontSize: '0.9em', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '40px', color: 'var(--text-secondary)' }}>Performance Financeira Consolidada</h3>
               <div style={{ height: '350px', width: '100%' }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={data}>
+                  <AreaChart data={chartData}>
                     <CartesianGrid strokeDasharray="0" stroke="#2d3139" vertical={false} />
                     <XAxis dataKey="name" stroke="var(--text-secondary)" fontSize={10} tickLine={false} axisLine={false} dy={10} />
                     <YAxis stroke="var(--text-secondary)" fontSize={10} tickLine={false} axisLine={false} dx={-10} />
@@ -178,33 +316,39 @@ const App = () => {
           <div className="glass-card" style={{ padding: '40px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '48px' }}>
               <h2 style={{ fontSize: '1.2em', textTransform: 'uppercase', letterSpacing: '2px' }}>Prazos e Diligências</h2>
-              <div style={{ display: 'flex', gap: '1px', background: '#2d3139' }}>
-                <button className="secondary" style={{ border: 'none', background: 'var(--bg-surface)' }}>DIA</button>
-                <button className="secondary" style={{ border: 'none', background: 'var(--bg-surface)' }}>SEMANA</button>
-                <button className="secondary" style={{ border: 'none', background: 'var(--bg-surface)' }}>MÊS</button>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button onClick={() => setModalType('addEvent')} style={{ fontSize: '0.7em', padding: '10px 20px' }}>+ NOVO COMPROMISSO</button>
+                <div style={{ display: 'flex', gap: '1px', background: '#2d3139' }}>
+                  <button className="secondary" style={{ border: 'none', background: 'var(--bg-surface)', padding: '10px' }}>DIA</button>
+                  <button className="secondary" style={{ border: 'none', background: 'var(--bg-surface)', padding: '10px' }}>SEMANA</button>
+                </div>
               </div>
             </div>
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', background: '#2d3139' }}>
-              {[
-                { id: 1, type: 'Audiência', case: 'João Silva vs. TechCorp', time: '14:00', date: 'HOJE', urgent: false },
-                { id: 2, type: 'Prazo Fatal', case: 'Maria Santos - Contestação', time: '23:59', date: 'HOJE', urgent: true },
-                { id: 3, type: 'Audiência', case: 'Pedro Oliveira vs. Bank Alpha', time: '09:30', date: '29 ABR', urgent: false },
-              ].map((event) => (
-                <div key={event.id} style={{ background: 'var(--bg-card)', padding: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', gap: '32px', alignItems: 'center' }}>
-                    <div style={{ minWidth: '80px', borderRight: '1px solid #2d3139' }}>
-                      <div style={{ fontSize: '1.1em', fontWeight: '700' }}>{event.time}</div>
-                      <div style={{ fontSize: '0.7em', color: event.urgent ? '#a06e6e' : 'var(--text-secondary)' }}>{event.date}</div>
-                    </div>
-                    <div>
-                      <div style={{ fontWeight: '600', fontSize: '1em', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{event.case}</div>
-                      <div style={{ fontSize: '0.7em', color: 'var(--text-secondary)', marginTop: '4px', textTransform: 'uppercase' }}>{event.type}</div>
-                    </div>
-                  </div>
-                  <button onClick={() => { setSelectedCase(event); setModalType('checkin'); }} style={{ fontSize: '0.75em' }}>VALIDAR CONCLUÍDO</button>
+              {events.length === 0 ? (
+                <div style={{ background: 'var(--bg-card)', padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                  NENHUM COMPROMISSO AGENDADO PARA HOJE.
                 </div>
-              ))}
+              ) : (
+                events.map((event) => (
+                  <div key={event.id} style={{ background: 'var(--bg-card)', padding: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', gap: '32px', alignItems: 'center' }}>
+                      <div style={{ minWidth: '80px', borderRight: '1px solid #2d3139' }}>
+                        <div style={{ fontSize: '1.1em', fontWeight: '700' }}>{event.time.slice(0, 5)}</div>
+                        <div style={{ fontSize: '0.7em', color: event.urgent ? '#a06e6e' : 'var(--text-secondary)' }}>{event.date_label || 'HOJE'}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: '600', fontSize: '1em', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{event.title}</div>
+                        <div style={{ fontSize: '0.7em', color: 'var(--text-secondary)', marginTop: '4px', textTransform: 'uppercase' }}>{event.type}</div>
+                      </div>
+                    </div>
+                    <button onClick={() => { setSelectedCase(event); setModalType('checkin'); }} style={{ fontSize: '0.75em' }}>VALIDAR CONCLUÍDO</button>
+                  </div>
+                ))
+              )}
             </div>
+
           </div>
         )}
 
@@ -230,26 +374,45 @@ const App = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {[
-                    { id: '102.344', client: 'JOÃO SILVA', update: '2H ATRÁS', status: 'INSTRUÇÃO', profit: 'R$ 8.500', color: 'success' },
-                    { id: '99.123', client: 'MARIA SANTOS', update: '1 DIA ATRÁS', status: 'INICIAL', profit: 'R$ 12.000', color: 'pending' },
-                    { id: '105.889', client: 'TECHCORP LTDA', update: '3 DIAS ATRÁS', status: 'SENTENÇA', profit: 'R$ 45.200', color: 'success' },
-                  ].map((item) => (
-                    <tr key={item.id} style={{ borderBottom: '1px solid #2d3139' }}>
-                      <td style={{ padding: '24px' }}>
-                        <div style={{ fontWeight: '700', fontSize: '0.95em' }}>{item.client}</div>
-                        <div style={{ fontSize: '0.7em', color: 'var(--text-secondary)' }}>ID: {item.id}</div>
-                      </td>
-                      <td style={{ padding: '24px', color: 'var(--text-secondary)', fontSize: '0.8em' }}>{item.update}</td>
-                      <td style={{ padding: '24px' }}><span className="status-badge" style={{ color: item.color === 'success' ? '#6ea08e' : '#ffa500' }}>{item.status}</span></td>
-                      <td style={{ padding: '24px', fontWeight: '700', fontSize: '0.9em' }}>{item.profit}</td>
-                      <td style={{ padding: '24px' }}>
-                        <button className="secondary" style={{ padding: '8px' }} onClick={() => sendWhatsAppUpdate(item.client, item.id)}>
-                          <MessageSquare size={14} />
-                        </button>
+                  {loading ? (
+                    <tr>
+                      <td colSpan="5" style={{ padding: '40px', textAlign: 'center' }}>
+                        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px' }}>
+                          <Loader2 className="animate-spin" size={20} />
+                          <span>CARREGANDO DADOS DO SUPABASE...</span>
+                        </div>
                       </td>
                     </tr>
-                  ))}
+                  ) : processes.length === 0 ? (
+                    <tr>
+                      <td colSpan="5" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>NENHUM PROCESSO ENCONTRADO NO BANCO DE DADOS.</td>
+                    </tr>
+                  ) : (
+                    processes.map((item) => (
+                      <tr key={item.id} style={{ borderBottom: '1px solid #2d3139' }}>
+                        <td style={{ padding: '24px' }}>
+                          <div style={{ fontWeight: '700', fontSize: '0.95em', textTransform: 'uppercase' }}>{item.client_name}</div>
+                          <div style={{ fontSize: '0.7em', color: 'var(--text-secondary)' }}>ID: {item.id.slice(0, 8)}...</div>
+                        </td>
+                        <td style={{ padding: '24px', color: 'var(--text-secondary)', fontSize: '0.8em' }}>
+                          {formatDistanceToNow(new Date(item.created_at), { addSuffix: true, locale: ptBR }).toUpperCase()}
+                        </td>
+                        <td style={{ padding: '24px' }}>
+                          <span className="status-badge" style={{ color: item.status === 'SENTENÇA' ? '#6ea08e' : '#ffa500' }}>
+                            {item.status}
+                          </span>
+                        </td>
+                        <td style={{ padding: '24px', fontWeight: '700', fontSize: '0.9em' }}>
+                          R$ {item.profit?.toLocaleString()}
+                        </td>
+                        <td style={{ padding: '24px' }}>
+                          <button className="secondary" style={{ padding: '8px' }} onClick={() => sendWhatsAppUpdate(item.client_name, item.id.slice(0, 8))}>
+                            <MessageSquare size={14} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -285,26 +448,31 @@ const App = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {[
-                    { case: 'SILVA VS TECHCORP', in: 15000, out: 1200, net: 13800, margin: 92 },
-                    { case: 'MARIA SANTOS INVENTÁRIO', in: 45000, out: 4500, net: 40500, margin: 90 },
-                    { case: 'CONDOMÍNIO SOLAR', in: 8000, out: 150, net: 7850, margin: 98 },
-                  ].map((row, i) => (
-                    <tr key={i} style={{ borderBottom: '1px solid #2d3139' }}>
-                      <td style={{ padding: '16px', fontWeight: '700', fontSize: '0.9em' }}>{row.case}</td>
-                      <td style={{ padding: '16px', color: 'var(--accent-primary)' }}>+ R$ {row.in.toLocaleString()}</td>
-                      <td style={{ padding: '16px', color: '#a06e6e' }}>- R$ {row.out.toLocaleString()}</td>
-                      <td style={{ padding: '16px', color: '#6ea08e', fontWeight: '700' }}>R$ {row.net.toLocaleString()}</td>
-                      <td style={{ padding: '16px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <div style={{ flex: 1, height: '4px', background: '#2d3139' }}>
-                            <div style={{ width: `${row.margin}%`, height: '100%', background: 'var(--accent-primary)' }}></div>
-                          </div>
-                          <span style={{ fontSize: '0.8em' }}>{row.margin}%</span>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                  {processes.length === 0 ? (
+                    <tr><td colSpan="5" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>AGUARDANDO DADOS FINANCEIROS...</td></tr>
+                  ) : (
+                    processes.map((row) => {
+                      const cost = (row.profit || 0) * 0.08; // Estimativa de 8% de custos
+                      const net = (row.profit || 0) - cost;
+                      return (
+                        <tr key={row.id} style={{ borderBottom: '1px solid #2d3139' }}>
+                          <td style={{ padding: '16px', fontWeight: '700', fontSize: '0.9em', textTransform: 'uppercase' }}>{row.client_name}</td>
+                          <td style={{ padding: '16px', color: 'var(--accent-primary)' }}>+ R$ {(row.profit || 0).toLocaleString()}</td>
+                          <td style={{ padding: '16px', color: '#a06e6e' }}>- R$ {cost.toLocaleString()}</td>
+                          <td style={{ padding: '16px', color: '#6ea08e', fontWeight: '700' }}>R$ {net.toLocaleString()}</td>
+                          <td style={{ padding: '16px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <div style={{ flex: 1, height: '4px', background: '#2d3139' }}>
+                                <div style={{ width: '92%', height: '100%', background: 'var(--accent-primary)' }}></div>
+                              </div>
+                              <span style={{ fontSize: '0.8em' }}>92%</span>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+
                 </tbody>
               </table>
             </div>
@@ -391,19 +559,48 @@ const App = () => {
 
       {modalType === 'triage' && (
         <Modal title="Triagem de Novo Caso" onClose={() => setModalType(null)}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <input type="text" placeholder="NOME COMPLETO DO CLIENTE" style={{ width: '100%', background: 'transparent', border: '1px solid #2d3139', padding: '12px', color: 'white' }} />
+          <form onSubmit={handleRegisterCase} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <input 
+              type="text" 
+              placeholder="NOME COMPLETO DO CLIENTE" 
+              required
+              value={formData.client_name}
+              onChange={(e) => setFormData({...formData, client_name: e.target.value})}
+              style={{ width: '100%', background: 'transparent', border: '1px solid #2d3139', padding: '12px', color: 'white' }} 
+            />
             <div style={{ display: 'flex', gap: '10px' }}>
-              <input type="text" placeholder="CPF / CNPJ" style={{ flex: 1, background: 'transparent', border: '1px solid #2d3139', padding: '12px', color: 'white' }} />
-              <input type="text" placeholder="TELEFONE" style={{ flex: 1, background: 'transparent', border: '1px solid #2d3139', padding: '12px', color: 'white' }} />
+              <input 
+                type="text" 
+                placeholder="CPF / CNPJ" 
+                required
+                value={formData.client_id}
+                onChange={(e) => setFormData({...formData, client_id: e.target.value})}
+                style={{ flex: 1, background: 'transparent', border: '1px solid #2d3139', padding: '12px', color: 'white' }} 
+              />
+              <input 
+                type="text" 
+                placeholder="TELEFONE" 
+                required
+                value={formData.phone}
+                onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                style={{ flex: 1, background: 'transparent', border: '1px solid #2d3139', padding: '12px', color: 'white' }} 
+              />
             </div>
-            <textarea placeholder="DESCRIÇÃO PRELIMINAR DO CASO" rows="4" style={{ width: '100%', background: 'transparent', border: '1px solid #2d3139', padding: '12px', color: 'white' }}></textarea>
+            <textarea 
+              placeholder="DESCRIÇÃO PRELIMINAR DO CASO" 
+              rows="4" 
+              value={formData.description}
+              onChange={(e) => setFormData({...formData, description: e.target.value})}
+              style={{ width: '100%', background: 'transparent', border: '1px solid #2d3139', padding: '12px', color: 'white' }}
+            ></textarea>
             <div style={{ border: '1px dashed #2d3139', padding: '30px', textAlign: 'center', cursor: 'pointer' }}>
               <FileUp size={24} color="var(--accent-primary)" />
               <p style={{ fontSize: '0.8em', marginTop: '10px' }}>ANEXAR DOCUMENTOS (RG, COMPROVANTE, ETC)</p>
             </div>
-            <button style={{ width: '100%' }} onClick={() => { alert('Caso registrado com sucesso! O cliente receberá o link do Portal VIP por SMS.'); setModalType(null); }}>INICIAR PROCESSO</button>
-          </div>
+            <button type="submit" disabled={loading} style={{ width: '100%', opacity: loading ? 0.7 : 1 }}>
+              {loading ? <Loader2 className="animate-spin" size={16} /> : 'INICIAR PROCESSO'}
+            </button>
+          </form>
         </Modal>
       )}
 
@@ -462,11 +659,67 @@ const App = () => {
         </Modal>
       )}
 
+      {modalType === 'addEvent' && (
+        <Modal title="Novo Compromisso" onClose={() => setModalType(null)}>
+          <form onSubmit={handleAddEvent} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <input 
+              type="text" 
+              placeholder="TÍTULO DO COMPROMISSO (EX: AUDIÊNCIA SILVA)" 
+              required
+              value={eventFormData.title}
+              onChange={(e) => setEventFormData({...eventFormData, title: e.target.value})}
+              style={{ width: '100%', background: 'transparent', border: '1px solid #2d3139', padding: '12px', color: 'white' }} 
+            />
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <select 
+                value={eventFormData.type}
+                onChange={(e) => setEventFormData({...eventFormData, type: e.target.value})}
+                style={{ flex: 1, background: 'var(--bg-surface)', border: '1px solid #2d3139', padding: '12px', color: 'white' }}
+              >
+                <option>Audiência</option>
+                <option>Prazo Fatal</option>
+                <option>Reunião</option>
+                <option>Diligência</option>
+              </select>
+              <input 
+                type="time" 
+                required
+                value={eventFormData.time}
+                onChange={(e) => setEventFormData({...eventFormData, time: e.target.value})}
+                style={{ flex: 1, background: 'transparent', border: '1px solid #2d3139', padding: '12px', color: 'white' }} 
+              />
+            </div>
+            <input 
+              type="text" 
+              placeholder="DATA (EX: HOJE, 30 ABR, 15 MAI)" 
+              required
+              value={eventFormData.date_label}
+              onChange={(e) => setEventFormData({...eventFormData, date_label: e.target.value})}
+              style={{ width: '100%', background: 'transparent', border: '1px solid #2d3139', padding: '12px', color: 'white' }} 
+            />
+            <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.85em', cursor: 'pointer' }}>
+              <input 
+                type="checkbox" 
+                checked={eventFormData.urgent}
+                onChange={(e) => setEventFormData({...eventFormData, urgent: e.target.checked})}
+              />
+              MARCAR COMO URGENTE (ALERTA VERMELHO)
+            </label>
+            <button type="submit" disabled={loading} style={{ width: '100%' }}>
+              {loading ? <Loader2 className="animate-spin" size={16} /> : 'SALVAR NA AGENDA'}
+            </button>
+          </form>
+        </Modal>
+      )}
+
+
       <style>{`
         input:focus, textarea:focus, select:focus { outline: none; border-color: var(--accent-primary); }
         tr:hover { background: rgba(255, 255, 255, 0.01); }
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-thumb { background: #2d3139; }
+        .animate-spin { animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
     </div>
   );
