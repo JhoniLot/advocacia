@@ -21,7 +21,8 @@ import {
   Filter,
   ShieldCheck,
   Copy,
-  Smartphone
+  Smartphone,
+  LogOut
 } from 'lucide-react';
 import { 
   LineChart, 
@@ -50,6 +51,8 @@ const App = () => {
   const [showLinkGenerator, setShowLinkGenerator] = useState(false);
   const [selectedCase, setSelectedCase] = useState(null);
   const [linkCopied, setLinkCopied] = useState(false);
+
+  const isClientView = activeTab === 'portal';
 
   const KPICard = ({ title, value, icon: Icon, trend, status }) => (
     <div className="kpi-item">
@@ -91,58 +94,63 @@ const App = () => {
 
   return (
     <div style={{ display: 'flex' }}>
-      {/* Sidebar */}
-      <aside className="sidebar">
-        <div style={{ marginBottom: '60px', padding: '0 16px', borderBottom: '1px solid #2d3139', paddingBottom: '24px' }}>
-          <h2 style={{ fontSize: '1.1em', fontWeight: '800', letterSpacing: '2px' }}>PRIME <span style={{ fontWeight: '300', color: 'var(--accent-primary)' }}>JURÍDICO</span></h2>
-          <p style={{ fontSize: '0.6em', color: 'var(--text-secondary)', marginTop: '4px', letterSpacing: '3px' }}>SOLUÇÕES EXECUTIVAS</p>
-        </div>
-
-        <nav style={{ flex: 1 }}>
-          <a href="#" className={`nav-link ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}>
-            <LayoutDashboard size={18} /> PAINEL DE CONTROLE
-          </a>
-          <a href="#" className={`nav-link ${activeTab === 'calendar' ? 'active' : ''}`} onClick={() => setActiveTab('calendar')}>
-            <CalendarIcon size={18} /> AGENDA JURÍDICA
-          </a>
-          <a href="#" className={`nav-link ${activeTab === 'crm' ? 'active' : ''}`} onClick={() => setActiveTab('crm')}>
-            <Users size={18} /> GESTÃO DE PROCESSOS
-          </a>
-          <a href="#" className={`nav-link ${activeTab === 'finance' ? 'active' : ''}`} onClick={() => setActiveTab('finance')}>
-            <Wallet size={18} /> CONTROLADORIA
-          </a>
-          <a href="#" className={`nav-link ${activeTab === 'portal' ? 'active' : ''}`} onClick={() => setActiveTab('portal')}>
-            <ShieldCheck size={18} /> PORTAL DO CLIENTE
-          </a>
-        </nav>
-
-        <div style={{ padding: '16px', borderTop: '1px solid #2d3139', paddingTop: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-            <div style={{ width: '8px', height: '8px', background: '#6ea08e' }}></div>
-            <span style={{ fontSize: '0.7em', fontWeight: '700', letterSpacing: '1px' }}>SISTEMA OPERACIONAL</span>
+      {/* Sidebar - Ocultar na visão do cliente */}
+      {!isClientView && (
+        <aside className="sidebar">
+          <div style={{ marginBottom: '60px', padding: '0 16px', borderBottom: '1px solid #2d3139', paddingBottom: '24px' }}>
+            <h2 style={{ fontSize: '1.1em', fontWeight: '800', letterSpacing: '2px' }}>PRIME <span style={{ fontWeight: '300', color: 'var(--accent-primary)' }}>JURÍDICO</span></h2>
+            <p style={{ fontSize: '0.6em', color: 'var(--text-secondary)', marginTop: '4px', letterSpacing: '3px' }}>SOLUÇÕES EXECUTIVAS</p>
           </div>
-          <button className="secondary" style={{ width: '100%', fontSize: '0.7em', padding: '10px' }} onClick={() => setShowLinkGenerator(true)}>
-            <ExternalLink size={12} /> ACESSO EXTERNO
-          </button>
-        </div>
-      </aside>
+
+          <nav style={{ flex: 1 }}>
+            <a href="#" className={`nav-link ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}>
+              <LayoutDashboard size={18} /> PAINEL DE CONTROLE
+            </a>
+            <a href="#" className={`nav-link ${activeTab === 'calendar' ? 'active' : ''}`} onClick={() => setActiveTab('calendar')}>
+              <CalendarIcon size={18} /> AGENDA JURÍDICA
+            </a>
+            <a href="#" className={`nav-link ${activeTab === 'crm' ? 'active' : ''}`} onClick={() => setActiveTab('crm')}>
+              <Users size={18} /> GESTÃO DE PROCESSOS
+            </a>
+            <a href="#" className={`nav-link ${activeTab === 'finance' ? 'active' : ''}`} onClick={() => setActiveTab('finance')}>
+              <Wallet size={18} /> CONTROLADORIA
+            </a>
+            <a href="#" className={`nav-link ${activeTab === 'portal' ? 'active' : ''}`} onClick={() => setActiveTab('portal')}>
+              <ShieldCheck size={18} /> PORTAL DO CLIENTE
+            </a>
+          </nav>
+
+          <div style={{ padding: '16px', borderTop: '1px solid #2d3139', paddingTop: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+              <div style={{ width: '8px', height: '8px', background: '#6ea08e' }}></div>
+              <span style={{ fontSize: '0.7em', fontWeight: '700', letterSpacing: '1px' }}>SISTEMA OPERACIONAL</span>
+            </div>
+            <button className="secondary" style={{ width: '100%', fontSize: '0.7em', padding: '10px' }} onClick={() => setShowLinkGenerator(true)}>
+              <ExternalLink size={12} /> ACESSO EXTERNO
+            </button>
+          </div>
+        </aside>
+      )}
 
       {/* Main Content */}
-      <main className="main-content">
-        <header className="header">
-          <div>
-            <h1 style={{ fontSize: '1.8em', fontWeight: '300', marginBottom: '4px' }}>GESTÃO <span style={{ fontWeight: '700' }}>ESTRATÉGICA</span></h1>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.85em', textTransform: 'uppercase', letterSpacing: '1px' }}>DR. VINICIUS — SÓCIO DIRETOR</p>
-          </div>
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <button className="secondary" style={{ border: '1px solid #2d3139' }}>
-              <Gift size={16} /> NOTIFICAÇÕES (2)
-            </button>
-            <button>
-              <Plus size={16} /> REGISTRAR CASO
-            </button>
-          </div>
-        </header>
+      <main className="main-content" style={{ marginLeft: isClientView ? '0' : '260px', width: '100%', background: isClientView ? '#05060a' : '' }}>
+        {/* Header - Ocultar na visão do cliente */}
+        {!isClientView && (
+          <header className="header">
+            <div>
+              <h1 style={{ fontSize: '1.8em', fontWeight: '300', marginBottom: '4px' }}>GESTÃO <span style={{ fontWeight: '700' }}>ESTRATÉGICA</span></h1>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.85em', textTransform: 'uppercase', letterSpacing: '1px' }}>DR. VINICIUS — SÓCIO DIRETOR</p>
+            </div>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button className="secondary" style={{ border: '1px solid #2d3139' }}>
+                <Gift size={16} /> NOTIFICAÇÕES (2)
+              </button>
+              <button>
+                <Plus size={16} /> REGISTRAR CASO
+              </button>
+            </div>
+          </header>
+        )}
 
         {/* Dashboard Content */}
         {activeTab === 'dashboard' && (
@@ -324,17 +332,29 @@ const App = () => {
           </div>
         )}
 
-        {/* Client Portal Content */}
+        {/* Client Portal Content - FULL SCREEN SIMULATION */}
         {activeTab === 'portal' && (
-          <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+          <div style={{ minHeight: '100vh', padding: '60px 20px', maxWidth: '1000px', margin: '0 auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div style={{ background: 'var(--accent-primary)', width: '40px', height: '40px', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'var(--bg-deep)' }}>
+                  <ShieldCheck size={24} />
+                </div>
+                <h2 style={{ fontSize: '1.2em', letterSpacing: '2px', textTransform: 'uppercase' }}>Portal de Acompanhamento VIP</h2>
+              </div>
+              <button className="secondary" onClick={() => setActiveTab('dashboard')} style={{ fontSize: '0.7em', border: '1px solid var(--accent-primary)' }}>
+                <LogOut size={14} /> SAIR DA VISÃO DO CLIENTE
+              </button>
+            </div>
+
             <div className="glass-card" style={{ padding: '60px', textAlign: 'center', marginBottom: '32px', border: '2px solid var(--accent-primary)' }}>
-              <h2 style={{ fontSize: '1.5em', letterSpacing: '4px', textTransform: 'uppercase', marginBottom: '12px' }}>Portal de Acompanhamento Executivo</h2>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.8em', letterSpacing: '2px' }}>RELATÓRIO DE STATUS EM TEMPO REAL — CANAL EXCLUSIVO</p>
+              <h1 style={{ fontSize: '1.8em', letterSpacing: '4px', textTransform: 'uppercase', marginBottom: '12px' }}>Relatório de Status Executivo</h1>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.8em', letterSpacing: '2px' }}>ACOMPANHAMENTO EM TEMPO REAL — CANAL EXCLUSIVO</p>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '32px' }}>
               <div className="glass-card" style={{ padding: '40px' }}>
-                <h3 style={{ fontSize: '0.9em', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '40px' }}>Cronograma Processual</h3>
+                <h3 style={{ fontSize: '0.9em', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '40px' }}>Cronograma do Seu Processo</h3>
                 <div style={{ borderLeft: '1px solid #2d3139', paddingLeft: '32px', position: 'relative' }}>
                   {[
                     { title: 'PETIÇÃO INICIAL PROTOCOLADA', date: '12 JAN 2024', status: 'done' },
@@ -358,7 +378,7 @@ const App = () => {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
                 <div className="glass-card" style={{ padding: '24px' }}>
-                  <h4 style={{ fontSize: '0.8em', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '20px' }}>Resumo de Honorários</h4>
+                  <h4 style={{ fontSize: '0.8em', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '20px' }}>Situação Financeira</h4>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
                     <span style={{ fontSize: '0.75em', color: 'var(--text-secondary)' }}>LIQUIDADO</span>
                     <span style={{ fontWeight: '700' }}>R$ 5.000</span>
@@ -371,7 +391,7 @@ const App = () => {
                 </div>
 
                 <div className="glass-card" style={{ padding: '24px' }}>
-                  <h4 style={{ fontSize: '0.8em', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '20px' }}>Documentos Oficiais</h4>
+                  <h4 style={{ fontSize: '0.8em', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '20px' }}>Arquivos Disponíveis</h4>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.75em' }}>
                       <FileText size={14} /> INICIAL_CONSOLIDADA.PDF
