@@ -89,7 +89,8 @@ const TriageForm = ({ onSubmit, loading, onClose }) => {
     client_name: '',
     client_id: '',
     phone: '',
-    description: ''
+    description: '',
+    profit: ''
   });
 
   return (
@@ -114,13 +115,22 @@ const TriageForm = ({ onSubmit, loading, onClose }) => {
         />
         <input 
           type="text" 
-          placeholder="TELEFONE" 
+          placeholder="VALOR DOS HONORÁRIOS (R$)" 
           required
-          value={formData.phone}
-          onChange={(e) => setFormData({...formData, phone: e.target.value})}
+          type="number"
+          value={formData.profit}
+          onChange={(e) => setFormData({...formData, profit: e.target.value})}
           style={{ flex: 1, background: 'transparent', border: '1px solid #2d3139', padding: '12px', color: 'white' }} 
         />
       </div>
+      <input 
+        type="text" 
+        placeholder="TELEFONE DE CONTATO" 
+        required
+        value={formData.phone}
+        onChange={(e) => setFormData({...formData, phone: e.target.value})}
+        style={{ width: '100%', background: 'transparent', border: '1px solid #2d3139', padding: '12px', color: 'white' }} 
+      />
       <textarea 
         placeholder="DESCRIÇÃO PRELIMINAR DO CASO" 
         rows="4" 
@@ -205,12 +215,15 @@ const App = () => {
 
 
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [modalType, setModalType] = useState(null); // 'checkin', 'link', 'triage', 'notif', 'payment', 'meeting'
+  const [modalType, setModalType] = useState(null); // 'checkin', 'link', 'triage', 'notif', 'payment', 'meeting', 'editProcess'
   const [selectedCase, setSelectedCase] = useState(null);
   const [processes, setProcesses] = useState([]);
-  const [events, setEvents] = useState([]); // Nova state para agenda
+  const [events, setEvents] = useState([]);
   const [linkCopied, setLinkCopied] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  // Form states for Edit
+  const [editFormData, setEditFormData] = useState(null);
   
   // Dynamic KPIs
   const stats = processes.reduce((acc, curr) => {
@@ -261,6 +274,44 @@ const App = () => {
     setLoading(false);
   };
 
+  const handleUpdateProcess = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    const { error } = await supabase
+      .from('processes')
+      .update({
+        client_name: editFormData.client_name,
+        status: editFormData.status,
+        profit: parseFloat(editFormData.profit)
+      })
+      .eq('id', editFormData.id);
+
+    if (error) {
+      alert('Erro ao atualizar: ' + error.message);
+    } else {
+      setModalType(null);
+      fetchProcesses();
+    }
+    setLoading(false);
+  };
+
+  const handleDeleteProcess = async (id) => {
+    if (!confirm('Tem certeza que deseja excluir este processo permanentemente?')) return;
+    
+    setLoading(true);
+    const { error } = await supabase
+      .from('processes')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      alert('Erro ao excluir: ' + error.message);
+    } else {
+      fetchProcesses();
+    }
+    setLoading(false);
+  };
+
   const handleRegisterCase = async (e, formData) => {
     e.preventDefault();
     setLoading(true);
@@ -276,7 +327,7 @@ const App = () => {
           phone: formData.phone,
           description: formData.description,
           status: 'INICIAL',
-          profit: Math.floor(Math.random() * 15000) + 5000 
+          profit: parseFloat(formData.profit) || 0 
         }
       ])
       .select();
@@ -508,9 +559,17 @@ const App = () => {
                           R$ {item.profit?.toLocaleString()}
                         </td>
                         <td style={{ padding: '24px' }}>
-                          <button className="secondary" style={{ padding: '8px' }} onClick={() => sendWhatsAppUpdate(item.client_name, item.id.slice(0, 8))}>
-                            <MessageSquare size={14} />
-                          </button>
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <button className="secondary" style={{ padding: '8px' }} onClick={() => sendWhatsAppUpdate(item.client_name, item.id.slice(0, 8))}>
+                              <MessageSquare size={14} />
+                            </button>
+                            <button className="secondary" style={{ padding: '8px', color: 'var(--accent-primary)' }} onClick={() => { setEditFormData(item); setModalType('editProcess'); }}>
+                              <FileText size={14} />
+                            </button>
+                            <button className="secondary" style={{ padding: '8px', color: '#a06e6e' }} onClick={() => handleDeleteProcess(item.id)}>
+                              <X size={14} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -656,6 +715,51 @@ const App = () => {
             {linkCopied && <p style={{ fontSize: '0.7em', color: '#6ea08e', textAlign: 'center' }}>LINK COPIADO</p>}
             <button style={{ width: '100%', background: 'var(--accent-primary)', color: 'var(--bg-deep)' }} onClick={() => { setActiveTab('portal'); setModalType(null); }}>SIMULAR VISÃO DO CLIENTE</button>
           </div>
+        </Modal>
+      )}
+
+      {modalType === 'editProcess' && editFormData && (
+        <Modal title="Editar Processo" onClose={() => setModalType(null)}>
+          <form onSubmit={handleUpdateProcess} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <label style={{ fontSize: '0.7em', color: 'var(--text-secondary)' }}>NOME DO CLIENTE</label>
+              <input 
+                type="text" 
+                value={editFormData.client_name}
+                onChange={(e) => setEditFormData({...editFormData, client_name: e.target.value})}
+                style={{ width: '100%', background: 'transparent', border: '1px solid #2d3139', padding: '12px', color: 'white' }} 
+              />
+            </div>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label style={{ fontSize: '0.7em', color: 'var(--text-secondary)' }}>STATUS ATUAL</label>
+                <select 
+                  value={editFormData.status}
+                  onChange={(e) => setEditFormData({...editFormData, status: e.target.value})}
+                  style={{ width: '100%', background: 'var(--bg-surface)', border: '1px solid #2d3139', padding: '12px', color: 'white' }}
+                >
+                  <option>INICIAL</option>
+                  <option>CONTESTAÇÃO</option>
+                  <option>RÉPLICA</option>
+                  <option>AUDIÊNCIA</option>
+                  <option>SENTENÇA</option>
+                  <option>FINALIZADO</option>
+                </select>
+              </div>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label style={{ fontSize: '0.7em', color: 'var(--text-secondary)' }}>VALOR HONORÁRIOS (R$)</label>
+                <input 
+                  type="number" 
+                  value={editFormData.profit}
+                  onChange={(e) => setEditFormData({...editFormData, profit: e.target.value})}
+                  style={{ width: '100%', background: 'transparent', border: '1px solid #2d3139', padding: '12px', color: 'white' }} 
+                />
+              </div>
+            </div>
+            <button type="submit" disabled={loading} style={{ width: '100%', background: 'var(--accent-primary)', color: 'var(--bg-deep)' }}>
+              {loading ? <Loader2 className="animate-spin" size={16} /> : 'SALVAR ALTERAÇÕES'}
+            </button>
+          </form>
         </Modal>
       )}
 
