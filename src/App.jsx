@@ -54,7 +54,38 @@ const chartData = [
   { name: 'ABR', profit: 4500, revenue: 7500 },
 ];
 
+const KPICard = ({ title, value, icon: Icon, trend }) => (
+  <div className="kpi-item">
+    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+      <span style={{ color: 'var(--text-secondary)', fontSize: '0.75em', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '1px' }}>{title}</span>
+      <Icon size={16} color="var(--accent-primary)" />
+    </div>
+    <div style={{ fontSize: '1.8em', fontWeight: '400', marginBottom: '8px', fontFamily: 'serif' }}>{value}</div>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75em', color: trend > 0 ? '#6ea08e' : '#a06e6e' }}>
+      <span>{trend > 0 ? '▲' : '▼'} {Math.abs(trend)}%</span>
+      <span style={{ color: 'var(--text-secondary)' }}>VS MÊS ANTERIOR</span>
+    </div>
+  </div>
+);
+
+const Modal = ({ title, onClose, children }) => (
+  <div style={{
+    position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+    background: 'rgba(0,0,0,0.95)',
+    display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
+  }}>
+    <div className="glass-card" style={{ width: '550px', padding: '40px', position: 'relative', background: 'var(--bg-surface)', maxHeight: '90vh', overflowY: 'auto' }}>
+      <button onClick={onClose} style={{ position: 'absolute', right: '20px', top: '20px', border: 'none', background: 'transparent', color: 'var(--text-secondary)' }}>
+        <X size={20} />
+      </button>
+      <h2 style={{ marginBottom: '32px', fontSize: '1.2em', textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '1px solid #2d3139', paddingBottom: '16px' }}>{title}</h2>
+      {children}
+    </div>
+  </div>
+);
+
 const App = () => {
+
   const [activeTab, setActiveTab] = useState('dashboard');
   const [modalType, setModalType] = useState(null); // 'checkin', 'link', 'triage', 'notif', 'payment', 'meeting'
   const [selectedCase, setSelectedCase] = useState(null);
@@ -186,35 +217,9 @@ const App = () => {
   };
 
 
-  const KPICard = ({ title, value, icon: Icon, trend }) => (
-    <div className="kpi-item">
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-        <span style={{ color: 'var(--text-secondary)', fontSize: '0.75em', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '1px' }}>{title}</span>
-        <Icon size={16} color="var(--accent-primary)" />
-      </div>
-      <div style={{ fontSize: '1.8em', fontWeight: '400', marginBottom: '8px', fontFamily: 'serif' }}>{value}</div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75em', color: trend > 0 ? '#6ea08e' : '#a06e6e' }}>
-        <span>{trend > 0 ? '▲' : '▼'} {Math.abs(trend)}%</span>
-        <span style={{ color: 'var(--text-secondary)' }}>VS MÊS ANTERIOR</span>
-      </div>
-    </div>
-  );
+    setLoading(false);
+  };
 
-  const Modal = ({ title, onClose, children }) => (
-    <div style={{
-      position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
-      background: 'rgba(0,0,0,0.95)',
-      display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
-    }}>
-      <div className="glass-card" style={{ width: '550px', padding: '40px', position: 'relative', background: 'var(--bg-surface)', maxHeight: '90vh', overflowY: 'auto' }}>
-        <button onClick={onClose} style={{ position: 'absolute', right: '20px', top: '20px', border: 'none', background: 'transparent', color: 'var(--text-secondary)' }}>
-          <X size={20} />
-        </button>
-        <h2 style={{ marginBottom: '32px', fontSize: '1.2em', textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '1px solid #2d3139', paddingBottom: '16px' }}>{title}</h2>
-        {children}
-      </div>
-    </div>
-  );
 
   const sendWhatsAppUpdate = (clientName, processNumber) => {
     const message = `Prezado(a) ${clientName}, informamos que houve uma atualização no processo ${processNumber}. Para mais detalhes, acesse seu Portal de Acompanhamento. Atenciosamente, Escritório Prime.`;
