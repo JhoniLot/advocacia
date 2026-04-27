@@ -84,7 +84,125 @@ const Modal = ({ title, onClose, children }) => (
   </div>
 );
 
+const TriageForm = ({ onSubmit, loading, onClose }) => {
+  const [formData, setFormData] = useState({
+    client_name: '',
+    client_id: '',
+    phone: '',
+    description: ''
+  });
+
+  return (
+    <form onSubmit={(e) => onSubmit(e, formData)} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <input 
+        type="text" 
+        placeholder="NOME COMPLETO DO CLIENTE" 
+        required
+        autoFocus
+        value={formData.client_name}
+        onChange={(e) => setFormData({...formData, client_name: e.target.value})}
+        style={{ width: '100%', background: 'transparent', border: '1px solid #2d3139', padding: '12px', color: 'white' }} 
+      />
+      <div style={{ display: 'flex', gap: '10px' }}>
+        <input 
+          type="text" 
+          placeholder="CPF / CNPJ" 
+          required
+          value={formData.client_id}
+          onChange={(e) => setFormData({...formData, client_id: e.target.value})}
+          style={{ flex: 1, background: 'transparent', border: '1px solid #2d3139', padding: '12px', color: 'white' }} 
+        />
+        <input 
+          type="text" 
+          placeholder="TELEFONE" 
+          required
+          value={formData.phone}
+          onChange={(e) => setFormData({...formData, phone: e.target.value})}
+          style={{ flex: 1, background: 'transparent', border: '1px solid #2d3139', padding: '12px', color: 'white' }} 
+        />
+      </div>
+      <textarea 
+        placeholder="DESCRIÇÃO PRELIMINAR DO CASO" 
+        rows="4" 
+        value={formData.description}
+        onChange={(e) => setFormData({...formData, description: e.target.value})}
+        style={{ width: '100%', background: 'transparent', border: '1px solid #2d3139', padding: '12px', color: 'white' }}
+      ></textarea>
+      <div style={{ border: '1px dashed #2d3139', padding: '30px', textAlign: 'center', cursor: 'pointer' }}>
+        <FileUp size={24} color="var(--accent-primary)" />
+        <p style={{ fontSize: '0.8em', marginTop: '10px' }}>ANEXAR DOCUMENTOS (RG, COMPROVANTE, ETC)</p>
+      </div>
+      <button type="submit" disabled={loading} style={{ width: '100%', opacity: loading ? 0.7 : 1 }}>
+        {loading ? <Loader2 className="animate-spin" size={16} /> : 'INICIAR PROCESSO'}
+      </button>
+    </form>
+  );
+};
+
+const AgendaForm = ({ onSubmit, loading }) => {
+  const [eventFormData, setEventFormData] = useState({
+    title: '',
+    type: 'Audiência',
+    time: '10:00',
+    date_label: 'HOJE',
+    urgent: false
+  });
+
+  return (
+    <form onSubmit={(e) => onSubmit(e, eventFormData)} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <input 
+        type="text" 
+        placeholder="TÍTULO DO COMPROMISSO (EX: AUDIÊNCIA SILVA)" 
+        required
+        autoFocus
+        value={eventFormData.title}
+        onChange={(e) => setEventFormData({...eventFormData, title: e.target.value})}
+        style={{ width: '100%', background: 'transparent', border: '1px solid #2d3139', padding: '12px', color: 'white' }} 
+      />
+      <div style={{ display: 'flex', gap: '10px' }}>
+        <select 
+          value={eventFormData.type}
+          onChange={(e) => setEventFormData({...eventFormData, type: e.target.value})}
+          style={{ flex: 1, background: 'var(--bg-surface)', border: '1px solid #2d3139', padding: '12px', color: 'white' }}
+        >
+          <option>Audiência</option>
+          <option>Prazo Fatal</option>
+          <option>Reunião</option>
+          <option>Diligência</option>
+        </select>
+        <input 
+          type="time" 
+          required
+          value={eventFormData.time}
+          onChange={(e) => setEventFormData({...eventFormData, time: e.target.value})}
+          style={{ flex: 1, background: 'transparent', border: '1px solid #2d3139', padding: '12px', color: 'white' }} 
+        />
+      </div>
+      <input 
+        type="text" 
+        placeholder="DATA (EX: HOJE, 30 ABR, 15 MAI)" 
+        required
+        value={eventFormData.date_label}
+        onChange={(e) => setEventFormData({...eventFormData, date_label: e.target.value})}
+        style={{ width: '100%', background: 'transparent', border: '1px solid #2d3139', padding: '12px', color: 'white' }} 
+      />
+      <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.85em', cursor: 'pointer' }}>
+        <input 
+          type="checkbox" 
+          checked={eventFormData.urgent}
+          onChange={(e) => setEventFormData({...eventFormData, urgent: e.target.checked})}
+        />
+        MARCAR COMO URGENTE (ALERTA VERMELHO)
+      </label>
+      <button type="submit" disabled={loading} style={{ width: '100%' }}>
+        {loading ? <Loader2 className="animate-spin" size={16} /> : 'SALVAR NA AGENDA'}
+      </button>
+    </form>
+  );
+};
+
 const App = () => {
+
 
   const [activeTab, setActiveTab] = useState('dashboard');
   const [modalType, setModalType] = useState(null); // 'checkin', 'link', 'triage', 'notif', 'payment', 'meeting'
@@ -105,24 +223,8 @@ const App = () => {
   const totalCosts = stats.revenue - totalProfit;
 
   
-  // Triage Form State
-  const [formData, setFormData] = useState({
-    client_name: '',
-    client_id: '',
-    phone: '',
-    description: ''
-  });
-
-  const [eventFormData, setEventFormData] = useState({
-    title: '',
-    type: 'Audiência',
-    time: '10:00',
-    date_label: 'HOJE',
-    urgent: false
-  });
-
-
   const isClientView = activeTab === 'portal';
+
 
   useEffect(() => {
     fetchProcesses();
@@ -159,7 +261,7 @@ const App = () => {
     setLoading(false);
   };
 
-  const handleRegisterCase = async (e) => {
+  const handleRegisterCase = async (e, formData) => {
     e.preventDefault();
     setLoading(true);
     
@@ -185,7 +287,6 @@ const App = () => {
     } else {
       console.log('Caso registrado com sucesso!', data);
       alert('Caso registrado com sucesso! Redirecionando para a lista...');
-      setFormData({ client_name: '', client_id: '', phone: '', description: '' });
       setModalType(null);
       setActiveTab('crm'); // Muda para a aba de listagem
       fetchProcesses();
@@ -193,7 +294,8 @@ const App = () => {
     setLoading(false);
   };
 
-  const handleAddEvent = async (e) => {
+
+  const handleAddEvent = async (e, eventFormData) => {
     e.preventDefault();
     setLoading(true);
     
@@ -209,12 +311,12 @@ const App = () => {
     } else {
       console.log('Evento agendado!');
       alert('Compromisso agendado com sucesso!');
-      setEventFormData({ title: '', type: 'Audiência', time: '10:00', date_label: 'HOJE', urgent: false });
       setModalType(null);
       fetchEvents();
     }
     setLoading(false);
   };
+
 
   const sendWhatsAppUpdate = (clientName, processNumber) => {
     const message = `Prezado(a) ${clientName}, informamos que houve uma atualização no processo ${processNumber}. Para mais detalhes, acesse seu Portal de Acompanhamento. Atenciosamente, Escritório Prime.`;
@@ -559,50 +661,10 @@ const App = () => {
 
       {modalType === 'triage' && (
         <Modal title="Triagem de Novo Caso" onClose={() => setModalType(null)}>
-          <form onSubmit={handleRegisterCase} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <input 
-              type="text" 
-              placeholder="NOME COMPLETO DO CLIENTE" 
-              required
-              value={formData.client_name}
-              onChange={(e) => setFormData({...formData, client_name: e.target.value})}
-              style={{ width: '100%', background: 'transparent', border: '1px solid #2d3139', padding: '12px', color: 'white' }} 
-            />
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <input 
-                type="text" 
-                placeholder="CPF / CNPJ" 
-                required
-                value={formData.client_id}
-                onChange={(e) => setFormData({...formData, client_id: e.target.value})}
-                style={{ flex: 1, background: 'transparent', border: '1px solid #2d3139', padding: '12px', color: 'white' }} 
-              />
-              <input 
-                type="text" 
-                placeholder="TELEFONE" 
-                required
-                value={formData.phone}
-                onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                style={{ flex: 1, background: 'transparent', border: '1px solid #2d3139', padding: '12px', color: 'white' }} 
-              />
-            </div>
-            <textarea 
-              placeholder="DESCRIÇÃO PRELIMINAR DO CASO" 
-              rows="4" 
-              value={formData.description}
-              onChange={(e) => setFormData({...formData, description: e.target.value})}
-              style={{ width: '100%', background: 'transparent', border: '1px solid #2d3139', padding: '12px', color: 'white' }}
-            ></textarea>
-            <div style={{ border: '1px dashed #2d3139', padding: '30px', textAlign: 'center', cursor: 'pointer' }}>
-              <FileUp size={24} color="var(--accent-primary)" />
-              <p style={{ fontSize: '0.8em', marginTop: '10px' }}>ANEXAR DOCUMENTOS (RG, COMPROVANTE, ETC)</p>
-            </div>
-            <button type="submit" disabled={loading} style={{ width: '100%', opacity: loading ? 0.7 : 1 }}>
-              {loading ? <Loader2 className="animate-spin" size={16} /> : 'INICIAR PROCESSO'}
-            </button>
-          </form>
+          <TriageForm onSubmit={handleRegisterCase} loading={loading} />
         </Modal>
       )}
+
 
       {modalType === 'notif' && (
         <Modal title="Central de Notificações" onClose={() => setModalType(null)}>
@@ -661,56 +723,10 @@ const App = () => {
 
       {modalType === 'addEvent' && (
         <Modal title="Novo Compromisso" onClose={() => setModalType(null)}>
-          <form onSubmit={handleAddEvent} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <input 
-              type="text" 
-              placeholder="TÍTULO DO COMPROMISSO (EX: AUDIÊNCIA SILVA)" 
-              required
-              value={eventFormData.title}
-              onChange={(e) => setEventFormData({...eventFormData, title: e.target.value})}
-              style={{ width: '100%', background: 'transparent', border: '1px solid #2d3139', padding: '12px', color: 'white' }} 
-            />
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <select 
-                value={eventFormData.type}
-                onChange={(e) => setEventFormData({...eventFormData, type: e.target.value})}
-                style={{ flex: 1, background: 'var(--bg-surface)', border: '1px solid #2d3139', padding: '12px', color: 'white' }}
-              >
-                <option>Audiência</option>
-                <option>Prazo Fatal</option>
-                <option>Reunião</option>
-                <option>Diligência</option>
-              </select>
-              <input 
-                type="time" 
-                required
-                value={eventFormData.time}
-                onChange={(e) => setEventFormData({...eventFormData, time: e.target.value})}
-                style={{ flex: 1, background: 'transparent', border: '1px solid #2d3139', padding: '12px', color: 'white' }} 
-              />
-            </div>
-            <input 
-              type="text" 
-              placeholder="DATA (EX: HOJE, 30 ABR, 15 MAI)" 
-              required
-              value={eventFormData.date_label}
-              onChange={(e) => setEventFormData({...eventFormData, date_label: e.target.value})}
-              style={{ width: '100%', background: 'transparent', border: '1px solid #2d3139', padding: '12px', color: 'white' }} 
-            />
-            <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.85em', cursor: 'pointer' }}>
-              <input 
-                type="checkbox" 
-                checked={eventFormData.urgent}
-                onChange={(e) => setEventFormData({...eventFormData, urgent: e.target.checked})}
-              />
-              MARCAR COMO URGENTE (ALERTA VERMELHO)
-            </label>
-            <button type="submit" disabled={loading} style={{ width: '100%' }}>
-              {loading ? <Loader2 className="animate-spin" size={16} /> : 'SALVAR NA AGENDA'}
-            </button>
-          </form>
+          <AgendaForm onSubmit={handleAddEvent} loading={loading} />
         </Modal>
       )}
+
 
 
       <style>{`
