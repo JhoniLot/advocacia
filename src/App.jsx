@@ -224,6 +224,8 @@ const App = () => {
 
   // Form states for Edit
   const [editFormData, setEditFormData] = useState(null);
+  const [editEventFormData, setEventEditFormData] = useState(null);
+
   
   // Dynamic KPIs
   const stats = processes.reduce((acc, curr) => {
@@ -368,6 +370,46 @@ const App = () => {
     setLoading(false);
   };
 
+  const handleUpdateEvent = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    const { error } = await supabase
+      .from('agenda')
+      .update({
+        title: editEventFormData.title,
+        type: editEventFormData.type,
+        time: editEventFormData.time,
+        date_label: editEventFormData.date_label,
+        urgent: editEventFormData.urgent
+      })
+      .eq('id', editEventFormData.id);
+
+    if (error) {
+      alert('Erro ao atualizar: ' + error.message);
+    } else {
+      setModalType(null);
+      fetchEvents();
+    }
+    setLoading(false);
+  };
+
+  const handleDeleteEvent = async (id) => {
+    if (!confirm('Tem certeza que deseja excluir este compromisso?')) return;
+    
+    setLoading(true);
+    const { error } = await supabase
+      .from('agenda')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      alert('Erro ao excluir: ' + error.message);
+    } else {
+      fetchEvents();
+    }
+    setLoading(false);
+  };
+
 
   const sendWhatsAppUpdate = (clientName, processNumber) => {
     const message = `Prezado(a) ${clientName}, informamos que houve uma atualização no processo ${processNumber}. Para mais detalhes, acesse seu Portal de Acompanhamento. Atenciosamente, Escritório Prime.`;
@@ -496,10 +538,19 @@ const App = () => {
                         <div style={{ fontSize: '0.7em', color: 'var(--text-secondary)', marginTop: '4px', textTransform: 'uppercase' }}>{event.type}</div>
                       </div>
                     </div>
-                    <button onClick={() => { setSelectedCase(event); setModalType('checkin'); }} style={{ fontSize: '0.75em' }}>VALIDAR CONCLUÍDO</button>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button onClick={() => { setSelectedCase(event); setModalType('checkin'); }} style={{ fontSize: '0.75em' }}>VALIDAR</button>
+                      <button className="secondary" style={{ padding: '8px', color: 'var(--accent-primary)' }} onClick={() => { setEventEditFormData(event); setModalType('editEvent'); }}>
+                        <FileText size={14} />
+                      </button>
+                      <button className="secondary" style={{ padding: '8px', color: '#a06e6e' }} onClick={() => handleDeleteEvent(event.id)}>
+                        <X size={14} />
+                      </button>
+                    </div>
                   </div>
                 ))
               )}
+
             </div>
 
           </div>
@@ -831,9 +882,64 @@ const App = () => {
         </Modal>
       )}
 
+      {modalType === 'editEvent' && editEventFormData && (
+        <Modal title="Editar Compromisso" onClose={() => setModalType(null)}>
+          <form onSubmit={handleUpdateEvent} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <input 
+              type="text" 
+              placeholder="TÍTULO DO COMPROMISSO (EX: AUDIÊNCIA SILVA)" 
+              required
+              autoFocus
+              value={editEventFormData.title}
+              onChange={(e) => setEventEditFormData({...editEventFormData, title: e.target.value})}
+              style={{ width: '100%', background: 'transparent', border: '1px solid #2d3139', padding: '12px', color: 'white' }} 
+            />
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <select 
+                value={editEventFormData.type}
+                onChange={(e) => setEventEditFormData({...editEventFormData, type: e.target.value})}
+                style={{ flex: 1, background: 'var(--bg-surface)', border: '1px solid #2d3139', padding: '12px', color: 'white' }}
+              >
+                <option>Audiência</option>
+                <option>Prazo Fatal</option>
+                <option>Reunião</option>
+                <option>Diligência</option>
+              </select>
+              <input 
+                type="time" 
+                required
+                value={editEventFormData.time}
+                onChange={(e) => setEventEditFormData({...editEventFormData, time: e.target.value})}
+                style={{ flex: 1, background: 'transparent', border: '1px solid #2d3139', padding: '12px', color: 'white' }} 
+              />
+            </div>
+            <input 
+              type="text" 
+              placeholder="DATA (EX: HOJE, 30 ABR, 15 MAI)" 
+              required
+              value={editEventFormData.date_label}
+              onChange={(e) => setEventEditFormData({...editEventFormData, date_label: e.target.value})}
+              style={{ width: '100%', background: 'transparent', border: '1px solid #2d3139', padding: '12px', color: 'white' }} 
+            />
+            <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.85em', cursor: 'pointer' }}>
+              <input 
+                type="checkbox" 
+                checked={editEventFormData.urgent}
+                onChange={(e) => setEventEditFormData({...editEventFormData, urgent: e.target.checked})}
+              />
+              MARCAR COMO URGENTE (ALERTA VERMELHO)
+            </label>
+            <button type="submit" disabled={loading} style={{ width: '100%', background: 'var(--accent-primary)', color: 'var(--bg-deep)' }}>
+              {loading ? <Loader2 className="animate-spin" size={16} /> : 'SALVAR ALTERAÇÕES'}
+            </button>
+          </form>
+        </Modal>
+      )}
+
 
 
       <style>{`
+
         input:focus, textarea:focus, select:focus { outline: none; border-color: var(--accent-primary); }
         tr:hover { background: rgba(255, 255, 255, 0.01); }
         ::-webkit-scrollbar { width: 6px; }
