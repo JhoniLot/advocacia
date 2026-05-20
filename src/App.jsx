@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { supabase } from './lib/supabase';
 
 // Componentes
@@ -75,14 +75,50 @@ const AppContent = () => {
     supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
     });
+  }, []);
 
+  useEffect(() => {
     if (!isPortal) {
       fetchProcesses();
       fetchEvents();
     }
-  }, [isPortal]);
+  }, [isPortal, session]);
 
   const fetchProcessUpdates = async (processId) => {
+    if (!session || session?.isDemo) {
+      setCurrentUpdates([
+        {
+          id: "UPD-001",
+          process_id: processId,
+          description: "Petição Inicial protocolada sob o número 102384-2026.",
+          date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          time: "10:00:00"
+        },
+        {
+          id: "UPD-002",
+          process_id: processId,
+          description: "Despacho do Juiz determinando a citação do réu.",
+          date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          time: "15:30:00"
+        }
+      ]);
+      setCurrentDocuments([
+        {
+          id: "DOC-001",
+          process_id: processId,
+          name: "Petição_Inicial_Final.pdf",
+          file_url: "#"
+        },
+        {
+          id: "DOC-002",
+          process_id: processId,
+          name: "Guia_Custas_Pagas.pdf",
+          file_url: "#"
+        }
+      ]);
+      return;
+    }
+
     const { data, error } = await supabase
       .from('process_updates')
       .select('*')
@@ -102,6 +138,28 @@ const AppContent = () => {
   };
 
   const fetchEvents = async () => {
+    if (!session || session?.isDemo) {
+      setEvents([
+        {
+          id: "EVT-001",
+          title: "Audiência de Conciliação - Construtora Alfa S/A",
+          type: "AUDIÊNCIA",
+          time: "14:00:00",
+          date_label: new Date().toISOString().split('T')[0],
+          urgent: true
+        },
+        {
+          id: "EVT-002",
+          title: "Prazo para Réplica - Roberto Silveira Cavalcanti",
+          type: "PRAZO JURÍDICO",
+          time: "18:00:00",
+          date_label: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          urgent: false
+        }
+      ]);
+      return;
+    }
+
     const { data, error } = await supabase
       .from('agenda')
       .select('*')
@@ -114,13 +172,50 @@ const AppContent = () => {
 
   const fetchProcesses = async () => {
     setLoading(true);
+    if (!session || session?.isDemo) {
+      setProcesses([
+        {
+          id: "PROC-2026-9821",
+          client_name: "Roberto Silveira Cavalcanti",
+          client_id: "284.912.834-01",
+          phone: "(11) 99876-5432",
+          description: "Recurso de Apelação Cível - TJSP - Recuperação de Ativos Tributários",
+          status: "RÉPLICA",
+          profit: 345000.00,
+          created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
+        },
+        {
+          id: "PROC-2026-4401",
+          client_name: "Mariana Alvarenga Fontes",
+          client_id: "392.482.910-44",
+          phone: "(21) 98112-9988",
+          description: "Ação Ordinária de Cobrança com Danos Morais",
+          status: "SENTENÇA",
+          profit: 189000.00,
+          created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
+        },
+        {
+          id: "PROC-2026-1033",
+          client_name: "Construtora Alfa S/A",
+          client_id: "09.123.456/0001-99",
+          phone: "(11) 3300-8800",
+          description: "Execução de Título Extrajudicial - Cobrança de Cotas Condominiais",
+          status: "AUDIÊNCIA",
+          profit: 450000.00,
+          created_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString()
+        }
+      ]);
+      setLoading(false);
+      return;
+    }
+
     const { data, error } = await supabase
       .from('processes')
       .select('*')
       .order('created_at', { ascending: false });
     
     if (error) {
-      alert('Erro ao buscar dados: ' + error.message);
+      console.error('Erro ao buscar dados:', error.message);
     } else {
       setProcesses(data || []);
     }
@@ -130,6 +225,12 @@ const AppContent = () => {
   const handleUpdateProcess = async (e) => {
     e.preventDefault();
     setLoading(true);
+    if (session?.isDemo) {
+      setProcesses(processes.map(p => p.id === editFormData.id ? { ...p, client_name: editFormData.client_name, status: editFormData.status, profit: parseFloat(editFormData.profit) } : p));
+      setModalType(null);
+      setLoading(false);
+      return;
+    }
     const { error } = await supabase
       .from('processes')
       .update({
@@ -152,6 +253,11 @@ const AppContent = () => {
     if (!confirm('Tem certeza que deseja excluir este processo permanentemente?')) return;
     
     setLoading(true);
+    if (session?.isDemo) {
+      setProcesses(processes.filter(p => p.id !== id));
+      setLoading(false);
+      return;
+    }
     const { error } = await supabase
       .from('processes')
       .delete()
@@ -168,6 +274,19 @@ const AppContent = () => {
   const handleAddUpdate = async (e) => {
     e.preventDefault();
     setLoading(true);
+    if (session?.isDemo) {
+      const newUpdate = {
+        id: `UPD-${Math.random()}`,
+        process_id: editFormData.id,
+        description: newUpdateData.description,
+        date: newUpdateData.date,
+        time: newUpdateData.time
+      };
+      setCurrentUpdates([newUpdate, ...currentUpdates]);
+      setNewUpdateData({ description: '', date: '', time: '' });
+      setLoading(false);
+      return;
+    }
     const { error } = await supabase
       .from('process_updates')
       .insert([{
@@ -188,6 +307,11 @@ const AppContent = () => {
 
   const handleDeleteUpdate = async (id) => {
     setLoading(true);
+    if (session?.isDemo) {
+      setCurrentUpdates(currentUpdates.filter(u => u.id !== id));
+      setLoading(false);
+      return;
+    }
     const { error } = await supabase.from('process_updates').delete().eq('id', id);
     if (!error) {
       fetchProcessUpdates(editFormData.id);
@@ -200,6 +324,17 @@ const AppContent = () => {
     if (!file) return;
 
     setUploadingDoc(true);
+    if (session?.isDemo) {
+      const newDoc = {
+        id: `DOC-${Math.random()}`,
+        process_id: processId,
+        name: file.name,
+        file_url: "#"
+      };
+      setCurrentDocuments([...currentDocuments, newDoc]);
+      setUploadingDoc(false);
+      return;
+    }
     const fileExt = file.name.split('.').pop();
     const fileName = `${processId}-${Math.random()}.${fileExt}`;
     const filePath = `documents/${fileName}`;
@@ -235,6 +370,10 @@ const AppContent = () => {
   };
 
   const handleDeleteDocument = async (id) => {
+    if (session?.isDemo) {
+      setCurrentDocuments(currentDocuments.filter(d => d.id !== id));
+      return;
+    }
     const { error } = await supabase.from('process_documents').delete().eq('id', id);
     if (!error) fetchProcessUpdates(editFormData.id);
   };
@@ -242,6 +381,24 @@ const AppContent = () => {
   const handleRegisterCase = async (e, formData) => {
     e.preventDefault();
     setLoading(true);
+
+    if (session?.isDemo) {
+      const newProcess = {
+        id: `PROC-${Math.floor(Math.random() * 10000)}`,
+        client_name: formData.client_name,
+        client_id: formData.client_id,
+        phone: formData.phone,
+        description: formData.description,
+        status: 'INICIAL',
+        profit: parseFloat(formData.profit) || 0,
+        created_at: new Date().toISOString()
+      };
+      setProcesses([newProcess, ...processes]);
+      alert('Caso registrado com sucesso (Modo Portfólio)!');
+      setModalType(null);
+      setLoading(false);
+      return;
+    }
 
     const { error } = await supabase
       .from('processes')
@@ -270,6 +427,18 @@ const AppContent = () => {
     e.preventDefault();
     setLoading(true);
 
+    if (session?.isDemo) {
+      const newEvent = {
+        id: `EVT-${Math.floor(Math.random() * 10000)}`,
+        ...eventFormData
+      };
+      setEvents([newEvent, ...events]);
+      alert('Compromisso agendado com sucesso (Modo Portfólio)!');
+      setModalType(null);
+      setLoading(false);
+      return;
+    }
+
     const { error } = await supabase
       .from('agenda')
       .insert([eventFormData]);
@@ -287,6 +456,12 @@ const AppContent = () => {
   const handleUpdateEvent = async (e) => {
     e.preventDefault();
     setLoading(true);
+    if (session?.isDemo) {
+      setEvents(events.map(ev => ev.id === editEventFormData.id ? { ...ev, title: editEventFormData.title, type: editEventFormData.type, time: editEventFormData.time, date_label: editEventFormData.date_label, urgent: editEventFormData.urgent } : ev));
+      setModalType(null);
+      setLoading(false);
+      return;
+    }
     const { error } = await supabase
       .from('agenda')
       .update({
@@ -311,6 +486,11 @@ const AppContent = () => {
     if (!confirm('Tem certeza que deseja excluir este compromisso?')) return;
     
     setLoading(true);
+    if (session?.isDemo) {
+      setEvents(events.filter(ev => ev.id !== id));
+      setLoading(false);
+      return;
+    }
     const { error } = await supabase
       .from('agenda')
       .delete()
@@ -330,14 +510,19 @@ const AppContent = () => {
   };
 
   const generateVIPLink = (id) => {
-    const link = `${window.location.origin}/portal/${id}`;
+    const link = `${window.location.origin}${window.location.pathname}#/portal/${id}`;
     setGeneratedLink(link);
     setModalType('link');
   };
 
   const handleLogout = async () => {
+    if (session?.isDemo) {
+      setSession(null);
+      return;
+    }
     await supabase.auth.signOut();
   };
+
 
   if (!session && !isPortal) {
     return <Login setSession={setSession} />;
@@ -542,9 +727,9 @@ const AppContent = () => {
 };
 
 const App = () => (
-  <BrowserRouter>
+  <HashRouter>
     <AppContent />
-  </BrowserRouter>
+  </HashRouter>
 );
 
 export default App;

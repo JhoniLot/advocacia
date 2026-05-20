@@ -62,9 +62,41 @@ const Login = ({ setSession }) => {
             {isSignUp ? 'Já tem uma conta? Faça login' : 'Primeiro acesso? Crie sua conta'}
           </button>
         </div>
+        
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', fontSize: '0.7em', margin: '8px 0' }}>
+          <div style={{ flex: 1, height: '1px', background: '#2d3139' }}></div>
+          <span>OU APRESENTAÇÃO</span>
+          <div style={{ flex: 1, height: '1px', background: '#2d3139' }}></div>
+        </div>
+        
+        <button 
+          type="button"
+          onClick={() => {
+            localStorage.setItem('portfolioMode', 'true');
+            setSession({ user: { email: 'demonstracao@primejuridico.com.br' }, isDemo: true });
+          }}
+          style={{ 
+            width: '100%', 
+            background: 'rgba(110, 160, 142, 0.1)', 
+            color: '#6ea08e', 
+            border: '1px dashed rgba(110, 160, 142, 0.5)', 
+            padding: '12px', 
+            fontWeight: '700',
+            letterSpacing: '1px',
+            fontSize: '0.8em',
+            cursor: 'pointer',
+            borderRadius: '4px',
+            transition: 'all 0.3s ease'
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(110, 160, 142, 0.2)'; e.currentTarget.style.borderStyle = 'solid'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(110, 160, 142, 0.1)'; e.currentTarget.style.borderStyle = 'dashed'; }}
+        >
+          ACESSAR MODO PORTFÓLIO (DEMO)
+        </button>
       </div>
     </div>
   );
 };
 
 export default Login;
+
