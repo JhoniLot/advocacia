@@ -62,9 +62,9 @@ const AppContent = () => {
   const totalCosts = stats.revenue - totalProfit;
 
   const filteredProcesses = processes.filter(p => 
-    p.client_name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    p.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (p.client_id && p.client_id.includes(searchQuery))
+    (p?.client_name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) || 
+    (p?.id?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+    (p?.client_id && p.client_id.includes(searchQuery))
   );
 
   useEffect(() => {
